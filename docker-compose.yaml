@@ -1,0 +1,35 @@
+version: "3.8"
+services:
+  zookeeper:
+    ports:
+      - '50000:2181'
+    image: jplock/zookeeper
+  kafka:
+    ports:
+      - '50001:9092'
+      - '50002:9093'
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENERS: 'INTERNAL://:9092'
+      KAFKA_ADVERTISED_LISTENERS: 'INTERNAL://:9092'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'INTERNAL:PLAINTEXT'
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: '1'
+      KAFKA_CREATE_TOPICS: 'example-topic:1:1'
+      KAFKA_ADVERTISED_HOST_NAME: host.docker.internal # change to 172.17.0.1 if running on Ubuntu
+    image: 'wurstmeister/kafka:2.12-2.4.0'
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock'
+  db:
+    image: "postgres:13"
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=testdb
+volumes: {}
