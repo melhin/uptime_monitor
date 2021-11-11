@@ -1,28 +1,29 @@
 from http import HTTPStatus
 
 import pytest
-import responses
 
+from settings import Endpoint
 from website_checker import UPSTATUS, check_site
 
 
 @pytest.mark.parametrize(
     ("expected_status", "received_status", "expected_up_status"),
     [
-        (HTTPStatus.OK, HTTPStatus.OK, UPSTATUS.PASS),
-        (HTTPStatus.OK, HTTPStatus.FORBIDDEN, UPSTATUS.FAIL),
-        (HTTPStatus.OK, HTTPStatus.GATEWAY_TIMEOUT, UPSTATUS.FAIL),
-        (HTTPStatus.CREATED, HTTPStatus.OK, UPSTATUS.FAIL),
+        (HTTPStatus.OK, HTTPStatus.OK, UPSTATUS.PASS.value),
+        (HTTPStatus.OK, HTTPStatus.FORBIDDEN, UPSTATUS.FAIL.value),
+        (HTTPStatus.OK, HTTPStatus.GATEWAY_TIMEOUT, UPSTATUS.FAIL.value),
+        (HTTPStatus.CREATED, HTTPStatus.OK, UPSTATUS.FAIL.value),
     ],
 )
-@responses.activate
-def test_website_checker_basic_status(
-    expected_status, received_status, expected_up_status
+@pytest.mark.asyncio
+async def test_website_checker_basic_status(
+    httpx_mock, expected_status, received_status, expected_up_status
 ):
     endpoint_url = "http://amazing.web.com"
-    responses.add(responses.GET, endpoint_url, status=received_status)
+    endpoint = Endpoint(id=1, url=endpoint_url)
+    httpx_mock.add_response(method="GET", url=endpoint_url, status_code=received_status)
 
-    data = check_site(endpoint_url=endpoint_url, expected_status=expected_status)
+    data = await check_site(endpoint=endpoint, expected_status=expected_status)
     assert expected_up_status == data.up_status
     assert received_status == data.response_code
 
@@ -30,17 +31,22 @@ def test_website_checker_basic_status(
 @pytest.mark.parametrize(
     ("expected_text", "received_text", "expected_up_status"),
     [
-        ("expected", "the eXpEcted is present", UPSTATUS.PASS),
-        ("expected", "received some thing else", UPSTATUS.MISMATCH),
+        ("expected", "the eXpEcted is present", UPSTATUS.PASS.value),
+        ("expected", "received some thing else", UPSTATUS.MISMATCH.value),
     ],
 )
-@responses.activate
-def test_website_checker_basic_text(expected_text, received_text, expected_up_status):
+@pytest.mark.asyncio
+async def test_website_checker_basic_text(
+    httpx_mock, expected_text, received_text, expected_up_status
+):
     endpoint_url = "http://amazing.web.com"
-    responses.add(responses.GET, endpoint_url, body=received_text, status=HTTPStatus.OK)
+    endpoint = Endpoint(id=1, url=endpoint_url)
+    httpx_mock.add_response(
+        method="GET", url=endpoint_url, status_code=HTTPStatus.OK, text=received_text
+    )
 
-    data = check_site(
-        endpoint_url=endpoint_url,
+    data = await check_site(
+        endpoint=endpoint,
         expected_status=HTTPStatus.OK,
         expected_text=expected_text,
     )

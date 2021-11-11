@@ -4,9 +4,8 @@ from enum import Enum
 from http import HTTPStatus
 from typing import Optional
 
-import requests
-from marshmallow import Schema
-from pydantic.dataclasses import dataclass
+import httpx
+from pydantic import BaseModel
 
 import settings
 
@@ -19,11 +18,11 @@ class UPSTATUS(Enum):
     ERROR = "status.error"
 
 
-@dataclass
-class SiteResponse(Schema):
+class SiteResponse(BaseModel):
     response_time: float
-    up_status: UPSTATUS
-    endpoint_url: str
+    up_status: str
+    url: str
+    id: int
 
     response_code: Optional[HTTPStatus] = None
     response_headers: Optional[str] = None
@@ -31,7 +30,7 @@ class SiteResponse(Schema):
 
 
 def check_response(
-    res: requests.Response,
+    res: httpx.Response,
     expected_status: HTTPStatus,
     expected_text: Optional[str] = None,
 ):
@@ -45,8 +44,8 @@ def check_response(
         return UPSTATUS.PASS
 
 
-def check_site(
-    endpoint_url: str,
+async def check_site(
+    endpoint: settings.Endpoint,
     expected_status: Optional[HTTPStatus] = HTTPStatus.OK,
     expected_text: Optional[str] = None,
     timeout: Optional[float] = settings.DEFAULT_TIMEOUT,
@@ -62,14 +61,16 @@ def check_site(
     response_status_code = None
     response_headers = None
     start = datetime.datetime.now()
-    try:
-        res = requests.get(endpoint_url, timeout=timeout)
-    except requests.exceptions.Timeout as e:
-        up_status = UPSTATUS.TIMEOUT
-        response_text = e
-    except requests.exceptions.RequestException as e:
-        up_status = UPSTATUS.ERROR
-        response_text = e
+
+    async with httpx.AsyncClient() as client:
+        try:
+            res = await client.get(endpoint.url, timeout=timeout)
+        except httpx.TimeoutException as e:
+            up_status = UPSTATUS.TIMEOUT
+            response_text = str(e)
+        except httpx.RequestError as e:
+            up_status = UPSTATUS.ERROR
+            response_text = str(e)
 
     response_time = (datetime.datetime.now() - start).total_seconds()
 
@@ -85,8 +86,8 @@ def check_site(
         response_headers=response_headers,
         response_text=response_text,
         response_time=response_time,
-        up_status=up_status,
-        endpoint_url=endpoint_url,
+        up_status=up_status.value,
+        url=endpoint.url,
+        id=endpoint.id,
     )
-    print(data)
     return data
