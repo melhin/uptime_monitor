@@ -1,4 +1,5 @@
 import datetime
+import logging
 import re
 from enum import Enum
 from http import HTTPStatus
@@ -7,7 +8,10 @@ from typing import Optional
 import httpx
 from pydantic import BaseModel
 
-import settings
+from site_checker import settings
+from site_checker.entity import Endpoint
+
+logger = logging.getLogger(__name__)
 
 
 class UPSTATUS(Enum):
@@ -37,15 +41,22 @@ def check_response(
     if expected_text and not re.search(
         re.escape(expected_text), res.text, re.IGNORECASE
     ):
+        logger.error("Site %s: Expected: %s got %s", res.url, expected_text, res.text)
         return UPSTATUS.MISMATCH
     elif res.status_code != expected_status:
+        logger.error(
+            "Site %s: Expected: %s got %s",
+            res.url,
+            expected_status.value,
+            res.status_code,
+        )
         return UPSTATUS.FAIL
     else:
         return UPSTATUS.PASS
 
 
 async def check_site(
-    endpoint: settings.Endpoint,
+    endpoint: Endpoint,
     expected_status: Optional[HTTPStatus] = HTTPStatus.OK,
     expected_text: Optional[str] = None,
     timeout: Optional[float] = settings.DEFAULT_TIMEOUT,
@@ -62,12 +73,15 @@ async def check_site(
     response_headers = None
     start = datetime.datetime.now()
 
+    logger.info("Requesting %s", endpoint.url)
+
     async with httpx.AsyncClient() as client:
         try:
             res = await client.get(endpoint.url, timeout=timeout)
         except httpx.TimeoutException as e:
             up_status = UPSTATUS.TIMEOUT
             response_text = str(e)
+            logger.info("%s returned %s", endpoint.url, e)
         except httpx.RequestError as e:
             up_status = UPSTATUS.ERROR
             response_text = str(e)

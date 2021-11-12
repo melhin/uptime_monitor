@@ -1,12 +1,22 @@
 import asyncio
 import json
+import logging
+import sys
 from collections import defaultdict
 
 from aiokafka import AIOKafkaProducer
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from settings import BOOTSTRAP_SERVERS, DB_CONSUMER_TOPIC, Endpoint, Schedule
-from website_checker import check_site
+from site_checker.entity import Endpoint, Schedule
+from site_checker.settings import (BOOTSTRAP_SERVERS, DB_CONSUMER_TOPIC,
+                                   POOL_SIZE)
+from site_checker.website_checker import check_site
+
+logging.basicConfig(
+    level=logging.INFO,
+    stream=sys.stdout,
+)
+logger = logging.getLogger(__name__)
 
 SCHEDULE_ENTRIES = [
     ("1", "http://localhost:8081/", Schedule.EVERY_MINUTE),
@@ -50,7 +60,7 @@ async def worker(tasks: asyncio.Queue, result_queue: asyncio.Queue, number: int)
 async def producer(result_queue: asyncio.Queue, number: int):
     producer = AIOKafkaProducer(bootstrap_servers=BOOTSTRAP_SERVERS)
     await producer.start()
-    print(f"Producer {number} up")
+    logger.info(f"Producer {number} up")
     while True:
         site_response = await result_queue.get()
         message = json.dumps(dict(site_response)).encode("ascii")
@@ -63,12 +73,13 @@ async def get_jobs(schedule_type: Schedule, tasks: asyncio.Queue):
         await tasks.put(endpoint)
 
 
-async def main(pool_size: int):
+async def main():
+    logger.info("Creating jobs and scheduler")
     scheduler = AsyncIOScheduler()
     tasks = asyncio.Queue(20)
     result_queue = asyncio.Queue(20)
     scheduler.add_job(
-        get_jobs, "interval", minutes=1, args=(Schedule.EVERY_MINUTE, tasks)
+        get_jobs, "interval", seconds=3, args=(Schedule.EVERY_MINUTE, tasks)
     )
     scheduler.add_job(
         get_jobs, "interval", minutes=5, args=(Schedule.EVERY_FIVE_MINUTES, tasks)
@@ -80,15 +91,10 @@ async def main(pool_size: int):
     scheduler.start()
     workers = [
         asyncio.create_task(worker(tasks, result_queue, number))
-        for number in range(pool_size)
+        for number in range(POOL_SIZE)
     ]
     producers = [
         asyncio.create_task(producer(result_queue, number))
-        for number in range(pool_size)
+        for number in range(POOL_SIZE)
     ]
     await asyncio.gather(*workers, *producers)
-
-
-if __name__ == "__main__":
-    POOL_SIZE = 4
-    asyncio.run(main(POOL_SIZE))

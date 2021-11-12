@@ -2,8 +2,8 @@ from http import HTTPStatus
 
 import pytest
 
-from settings import Endpoint
-from website_checker import UPSTATUS, check_site
+from site_checker.entity import Endpoint
+from site_checker.website_checker import UPSTATUS, check_site
 
 
 @pytest.mark.parametrize(
