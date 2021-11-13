@@ -28,7 +28,14 @@ def consume_db_writer():
         # message value and key are raw bytes -- decode if necessary!
         # e.g., for unicode: `message.value.decode('utf-8')`
         try:
-            write_entries_to_ping(connection=connection, site_response=SiteResponse(**message.value))
+            write_entries_to_ping(
+                connection=connection,
+                site_response=SiteResponse(**message.value)
+            )
         except Exception as exc:  # noqa
-            logger.error("Writing failed for %s with exception %s", message.value, exc)
+            logger.error(
+                "Writing failed for %s with exception %s",
+                message.value,
+                exc
+            )
             # The consumer must carry on regardless
