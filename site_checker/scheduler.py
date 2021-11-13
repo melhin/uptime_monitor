@@ -33,13 +33,13 @@ def run_scheduler():
     logger.info("Starting scheduler")
     scheduler = BlockingScheduler()
     scheduler.add_job(
-        get_and_set_jobs, "interval", seconds=1, args=(Schedule.EVERY_MINUTE,)
+        get_and_set_jobs, "interval", minutes=1, args=(Schedule.EVERY_MINUTE,)
     )
     scheduler.add_job(
-        get_and_set_jobs, "interval", seconds=5, args=(Schedule.EVERY_FIVE_MINUTES,)
+        get_and_set_jobs, "interval", minutes=5, args=(Schedule.EVERY_FIVE_MINUTES,)
     )
     scheduler.add_job(
-        get_and_set_jobs, "interval", seconds=10, args=(Schedule.EVERY_TEN_MINUTES,)
+        get_and_set_jobs, "interval", minutes=10, args=(Schedule.EVERY_TEN_MINUTES,)
     )
     scheduler.add_job(
         get_and_set_jobs, "interval", hours=1, args=(Schedule.EVERY_HOUR,)

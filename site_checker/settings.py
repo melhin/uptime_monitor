@@ -3,7 +3,10 @@ import os
 DEFAULT_TIMEOUT = 30
 
 # kafka settings
-BOOTSTRAP_SERVERS = ["localhost:9092"]
+BOOTSTRAP_SERVERS = os.environ.get("BOOTSTRAP_SERVERS", ['localhost:9092'])
+KAFKA_KEY = os.environ.get("KAFKA_KEY")
+KAFKA_CERT = os.environ.get("KAFKA_CERT")
+KAFKA_CA = os.environ.get("KAFKA_CA")
 SITE_CONSUMER_TOPIC = "site-consumer"
 SITE_CONSUMER_GROUP = "site-group"
 DB_CONSUMER_TOPIC = "db-consumer"
