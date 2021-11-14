@@ -26,4 +26,3 @@ async def getcursor(connection):
     async with connection.acquire() as conn:
         async with conn.cursor() as cursor:
             yield cursor
-

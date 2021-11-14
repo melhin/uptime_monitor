@@ -21,18 +21,19 @@ async def worker(tasks: asyncio.Queue, kafka_queue: asyncio.Queue, number: int):
     logger.info(f"Worker {number} up")
     while True:
         endpoint = await tasks.get()
-        logger.info(f"Got")
+        logger.info(f"Got endpoint %s", endpoint.id)
         site_response = await check_site(endpoint=endpoint)
         await kafka_queue.put(site_response)
 
 
 async def producer(kafka_queue: asyncio.Queue, number: int):
-    async with kafka_connection() as producer:
+    async with kafka_connection() as kafka_producer:
         logger.info(f"Producer {number} up")
         while True:
             site_response = await kafka_queue.get()
+            logger.info(f"Publishing result for  %s", site_response.id)
             message = json.dumps(dict(site_response)).encode("ascii")
-            await producer.send_and_wait(settings.DB_CONSUMER_TOPIC, message)
+            await kafka_producer.send_and_wait(settings.DB_CONSUMER_TOPIC, message)
 
 
 async def collect_jobs(connection, tasks: asyncio.Queue):
@@ -43,10 +44,7 @@ async def collect_jobs(connection, tasks: asyncio.Queue):
         queue = []
         jobs = []
         for available_job in await job_db.get_available_jobs():
-            endpoint = Endpoint(
-                id=available_job.site_id,
-                url=available_job.url
-            )
+            endpoint = Endpoint(id=available_job.site_id, url=available_job.url)
 
             queue.append(endpoint)
             jobs.append(available_job.job_id)
@@ -54,7 +52,7 @@ async def collect_jobs(connection, tasks: asyncio.Queue):
             logger.info(
                 "Putting %s in for check. job_id: %s",
                 endpoint.url,
-                available_job.job_id
+                available_job.job_id,
             )
 
         # For now we will assume things don't break inbetween queue sending
@@ -73,7 +71,13 @@ async def run_job_consumer():
         kafka_queue = asyncio.Queue(20)
 
         scheduler.add_job(
-            collect_jobs, "interval", seconds=5, args=(connection,tasks,)
+            collect_jobs,
+            "interval",
+            seconds=5,
+            args=(
+                connection,
+                tasks,
+            ),
         )
         scheduler.start()
 

@@ -5,7 +5,7 @@ description = ""
 authors = ["melhin"]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 marshmallow = "^3.14.0"
 kafka-python = "^2.0.2"
 psycopg2 = "^2.9.1"
