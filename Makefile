@@ -27,3 +27,6 @@ stop-support:
 
 clean-support:
 	$(SUPPORT) down --remove-orphans --volumes
+
+load-data:
+	bash utils/create_schedule_data.sh

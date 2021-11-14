@@ -8,10 +8,10 @@ x-shared-db: &shared_db_env
   POSTGRESS_PORT: 5432
 
 x-shared-kafka: &shared_kafka_env
-  BOOTSTRAP_SERVERS: "kafka-181fcb0d-nihlemdammaha-72ee.aivencloud.com:26123"
+  BOOTSTRAP_SERVERS: "kafka1:9092"
   #KAFKA_CA: "ca.pem"
   #KAFKA_KEY: "service.key"
-  #KAFKA_CERT:  "service.cert"
+  #KAFKA_CERT: "service.cert"
 
 services:
 
