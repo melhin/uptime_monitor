@@ -3,7 +3,7 @@ import os
 DEFAULT_TIMEOUT = 30
 
 # kafka settings
-BOOTSTRAP_SERVERS = os.environ.get("BOOTSTRAP_SERVERS", ['localhost:9092'])
+BOOTSTRAP_SERVERS = (os.environ.get("BOOTSTRAP_SERVERS") or 'localhost:9092').split(',')
 KAFKA_KEY = os.environ.get("KAFKA_KEY")
 KAFKA_CERT = os.environ.get("KAFKA_CERT")
 KAFKA_CA = os.environ.get("KAFKA_CA")
