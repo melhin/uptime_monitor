@@ -4,6 +4,9 @@ SUPPORT= $(COMPOSE) -f docker-compose-support.yaml
 start:
 	$(COMPOSE) up -d
 
+rebuild:
+	$(COMPOSE) up --build -d --remove-orphans
+
 logs:
 	$(COMPOSE) logs --follow
 
