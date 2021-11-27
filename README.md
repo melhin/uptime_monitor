@@ -5,6 +5,10 @@ A simple implementation for monitoring multiple wesites. The core principle here
 
 ## How does this work ?
 
+### Reference Diagram
+
+![Alt text](diagrams/flow.png?raw=true "Architecture")
+
 ### Core components and explanation
 
 #### Scheduler:
